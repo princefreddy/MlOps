@@ -5,12 +5,16 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         DOCKERHUB_REPO = 'princefreddy'
     }
-    
+
     stages {
         stage('Build Preprocessing Image') {
             steps {
                 script {
-                    docker.build("${DOCKERHUB_REPO}/preprocessing:latest", "--target preprocessing .").push()
+                    bat """
+                        docker build --target preprocessing -t ${DOCKERHUB_REPO}/preprocessing:latest .
+                        echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
+                        docker push ${DOCKERHUB_REPO}/preprocessing:latest
+                    """
                 }
             }
         }
@@ -18,9 +22,9 @@ pipeline {
         stage('Run Preprocessing') {
             steps {
                 script {
-                    docker.image("${DOCKERHUB_REPO}/preprocessing:latest").run(
-                        "-v preprocessing-data:/app/data -v preprocessing-output:/app/output"
-                    )
+                    bat """
+                        docker run --rm -v preprocessing-data:/app/data -v preprocessing-output:/app/output ${DOCKERHUB_REPO}/preprocessing:latest
+                    """
                 }
             }
         }
@@ -28,7 +32,11 @@ pipeline {
         stage('Build Training Image') {
             steps {
                 script {
-                    docker.build("${DOCKERHUB_REPO}/training:latest", "--target training .").push()
+                    bat """
+                        docker build --target training -t ${DOCKERHUB_REPO}/training:latest .
+                        echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
+                        docker push ${DOCKERHUB_REPO}/training:latest
+                    """
                 }
             }
         }
@@ -36,9 +44,9 @@ pipeline {
         stage('Run Training') {
             steps {
                 script {
-                    docker.image("${DOCKERHUB_REPO}/training:latest").run(
-                        "-v preprocessing-output:/app/data -v training-models:/app/models"
-                    )
+                    bat """
+                        docker run --rm -v preprocessing-output:/app/data -v training-models:/app/models ${DOCKERHUB_REPO}/training:latest
+                    """
                 }
             }
         }
@@ -46,7 +54,11 @@ pipeline {
         stage('Build Evaluation Image') {
             steps {
                 script {
-                    docker.build("${DOCKERHUB_REPO}/evaluation:latest", "--target evaluation .").push()
+                    bat """
+                        docker build --target evaluation -t ${DOCKERHUB_REPO}/evaluation:latest .
+                        echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
+                        docker push ${DOCKERHUB_REPO}/evaluation:latest
+                    """
                 }
             }
         }
@@ -54,9 +66,9 @@ pipeline {
         stage('Run Evaluation') {
             steps {
                 script {
-                    docker.image("${DOCKERHUB_REPO}/evaluation:latest").run(
-                        "-v preprocessing-output:/app/data -v training-models:/app/models -v evaluation-metrics:/app/metrics"
-                    )
+                    bat """
+                        docker run --rm -v preprocessing-output:/app/data -v training-models:/app/models -v evaluation-metrics:/app/metrics ${DOCKERHUB_REPO}/evaluation:latest
+                    """
                 }
             }
         }
@@ -65,10 +77,14 @@ pipeline {
             steps {
                 script {
                     // Copier le modèle entraîné depuis le volume Docker
-                    sh 'docker run --rm -v training-models:/app/models -v ${WORKSPACE}:/output busybox cp -r /app/models /output/models'
+                    bat """
+                        docker run --rm -v training-models:/app/models -v ${WORKSPACE}:/output busybox cp -r /app/models /output/models
+                    """
 
                     // Copier les métriques d'évaluation depuis le volume Docker
-                    sh 'docker run --rm -v evaluation-metrics:/app/metrics -v ${WORKSPACE}:/output busybox cp -r /app/metrics /output/metrics'
+                    bat """
+                        docker run --rm -v evaluation-metrics:/app/metrics -v ${WORKSPACE}:/output busybox cp -r /app/metrics /output/metrics
+                    """
 
                     // Archiver les artefacts pour les stocker sur Jenkins
                     archiveArtifacts artifacts: 'models/**/*,metrics/**/*', onlyIfSuccessful: true
@@ -81,7 +97,7 @@ pipeline {
         always {
             script {
                 // Clean up Docker images and containers
-                sh 'docker system prune -f'
+                bat 'docker system prune -f'
             }
         }
     }
