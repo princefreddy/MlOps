@@ -14,14 +14,20 @@ pipeline {
                         echo Building preprocessing image...
                         docker build --target preprocessing -t ${DOCKERHUB_REPO}/preprocessing:latest .
                     """
-                    bat """
+                    withCredentials([usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )]){
+                        bat """
                         echo Logging into DockerHub...
-                        echo %DOCKERHUB_CREDENTIALS_PSW% | docker login -u %DOCKERHUB_CREDENTIALS_USR% --password-stdin
-                    """
-                    bat """
-                        echo Pushing preprocessing image to DockerHub...
-                        docker push ${DOCKERHUB_REPO}/preprocessing:latest
-                    """
+                        echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
+                        """
+                        bat """
+                            echo Pushing preprocessing image to DockerHub...
+                            docker push ${DOCKERHUB_REPO}/preprocessing:latest
+                        """
+                    }
                 }
             }
         }
