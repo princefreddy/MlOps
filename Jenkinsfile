@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials') // Assurez-vous que cet ID correspond à vos credentials Jenkins
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub') // Assurez-vous que cet ID correspond à vos credentials Jenkins
         DOCKERHUB_REPO = 'princefreddy' // Votre dépôt DockerHub
     }
 
@@ -14,20 +14,14 @@ pipeline {
                         echo Building preprocessing image...
                         docker build --target preprocessing -t ${DOCKERHUB_REPO}/preprocessing:latest .
                     """
-                    withCredentials([usernamePassword(
-                        credentialsId: 'dockerhub-credentials',
-                        usernameVariable: 'DOCKER_USERNAME',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )]){
-                        bat """
+                    bat """
                         echo Logging into DockerHub...
-                        echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
-                        """
-                        bat """
-                            echo Pushing preprocessing image to DockerHub...
-                            docker push ${DOCKERHUB_REPO}/preprocessing:latest
-                        """
-                    }
+                        echo %DOCKERHUB_CREDENTIALS_PSW% | docker login -u %DOCKERHUB_CREDENTIALS_USR% --password-stdin
+                    """
+                    bat """
+                        echo Pushing preprocessing image to DockerHub...
+                        docker push ${DOCKERHUB_REPO}/preprocessing:latest
+                    """
                 }
             }
         }
