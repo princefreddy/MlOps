@@ -10,7 +10,7 @@ pipeline {
         stage('Build Preprocessing Image') {
             steps {
                 script {
-                    docker.build("${env.DOCKERHUB_REPO}/preprocessing:latest", "--target preprocessing .").push()
+                    docker.build("${DOCKERHUB_REPO}/preprocessing:latest", "--target preprocessing .").push()
                 }
             }
         }
@@ -18,7 +18,7 @@ pipeline {
         stage('Run Preprocessing') {
             steps {
                 script {
-                    docker.image("${env.DOCKERHUB_REPO}/preprocessing:latest").run(
+                    docker.image("${DOCKERHUB_REPO}/preprocessing:latest").run(
                         "-v preprocessing-data:/app/data -v preprocessing-output:/app/output"
                     )
                 }
@@ -28,7 +28,7 @@ pipeline {
         stage('Build Training Image') {
             steps {
                 script {
-                    docker.build("${env.DOCKERHUB_REPO}/training:latest", "--target training .").push()
+                    docker.build("${DOCKERHUB_REPO}/training:latest", "--target training .").push()
                 }
             }
         }
@@ -36,7 +36,7 @@ pipeline {
         stage('Run Training') {
             steps {
                 script {
-                    docker.image("${env.DOCKERHUB_REPO}/training:latest").run(
+                    docker.image("${DOCKERHUB_REPO}/training:latest").run(
                         "-v preprocessing-output:/app/data -v training-models:/app/models"
                     )
                 }
@@ -46,7 +46,7 @@ pipeline {
         stage('Build Evaluation Image') {
             steps {
                 script {
-                    docker.build("${env.DOCKERHUB_REPO}/evaluation:latest", "--target evaluation .").push()
+                    docker.build("${DOCKERHUB_REPO}/evaluation:latest", "--target evaluation .").push()
                 }
             }
         }
@@ -54,7 +54,7 @@ pipeline {
         stage('Run Evaluation') {
             steps {
                 script {
-                    docker.image("${env.DOCKERHUB_REPO}/evaluation:latest").run(
+                    docker.image("${DOCKERHUB_REPO}/evaluation:latest").run(
                         "-v preprocessing-output:/app/data -v training-models:/app/models -v evaluation-metrics:/app/metrics"
                     )
                 }
