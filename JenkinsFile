@@ -5,7 +5,7 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         DOCKERHUB_REPO = 'princefreddy'
     }
-
+    
     stages {
         stage('Build Preprocessing Image') {
             steps {
