@@ -16,8 +16,6 @@ pipeline {
                     """
                     bat """
                         echo Logging into DockerHub...
-                        echo DockerHub Username: ${DOCKERHUB_CREDENTIALS_USR}
-                        echo DockerHub Password: ${DOCKERHUB_CREDENTIALS_PSW}
                         echo %DOCKERHUB_CREDENTIALS_PSW% | docker login -u %DOCKERHUB_CREDENTIALS_USR% --password-stdin
                     """
                     bat """
