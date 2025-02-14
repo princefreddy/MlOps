@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
-        DOCKERHUB_REPO = 'princefreddy'
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials') // Assurez-vous que cet ID correspond à vos credentials Jenkins
+        DOCKERHUB_REPO = 'princefreddy' // Votre dépôt DockerHub
     }
 
     stages {
@@ -11,8 +11,15 @@ pipeline {
             steps {
                 script {
                     bat """
+                        echo Building preprocessing image...
                         docker build --target preprocessing -t ${DOCKERHUB_REPO}/preprocessing:latest .
-                        echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
+                    """
+                    bat """
+                        echo Logging into DockerHub...
+                        echo %DOCKERHUB_CREDENTIALS_PSW% | docker login -u %DOCKERHUB_CREDENTIALS_USR% --password-stdin
+                    """
+                    bat """
+                        echo Pushing preprocessing image to DockerHub...
                         docker push ${DOCKERHUB_REPO}/preprocessing:latest
                     """
                 }
@@ -23,6 +30,7 @@ pipeline {
             steps {
                 script {
                     bat """
+                        echo Running preprocessing container...
                         docker run --rm -v preprocessing-data:/app/data -v preprocessing-output:/app/output ${DOCKERHUB_REPO}/preprocessing:latest
                     """
                 }
@@ -33,8 +41,15 @@ pipeline {
             steps {
                 script {
                     bat """
+                        echo Building training image...
                         docker build --target training -t ${DOCKERHUB_REPO}/training:latest .
-                        echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
+                    """
+                    bat """
+                        echo Logging into DockerHub...
+                        echo %DOCKERHUB_CREDENTIALS_PSW% | docker login -u %DOCKERHUB_CREDENTIALS_USR% --password-stdin
+                    """
+                    bat """
+                        echo Pushing training image to DockerHub...
                         docker push ${DOCKERHUB_REPO}/training:latest
                     """
                 }
@@ -45,6 +60,7 @@ pipeline {
             steps {
                 script {
                     bat """
+                        echo Running training container...
                         docker run --rm -v preprocessing-output:/app/data -v training-models:/app/models ${DOCKERHUB_REPO}/training:latest
                     """
                 }
@@ -55,8 +71,15 @@ pipeline {
             steps {
                 script {
                     bat """
+                        echo Building evaluation image...
                         docker build --target evaluation -t ${DOCKERHUB_REPO}/evaluation:latest .
-                        echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
+                    """
+                    bat """
+                        echo Logging into DockerHub...
+                        echo %DOCKERHUB_CREDENTIALS_PSW% | docker login -u %DOCKERHUB_CREDENTIALS_USR% --password-stdin
+                    """
+                    bat """
+                        echo Pushing evaluation image to DockerHub...
                         docker push ${DOCKERHUB_REPO}/evaluation:latest
                     """
                 }
@@ -67,6 +90,7 @@ pipeline {
             steps {
                 script {
                     bat """
+                        echo Running evaluation container...
                         docker run --rm -v preprocessing-output:/app/data -v training-models:/app/models -v evaluation-metrics:/app/metrics ${DOCKERHUB_REPO}/evaluation:latest
                     """
                 }
@@ -76,17 +100,14 @@ pipeline {
         stage('Store Model and Metrics on Jenkins') {
             steps {
                 script {
-                    // Copier le modèle entraîné depuis le volume Docker
                     bat """
+                        echo Copying trained model from Docker volume...
                         docker run --rm -v training-models:/app/models -v ${WORKSPACE}:/output busybox cp -r /app/models /output/models
                     """
-
-                    // Copier les métriques d'évaluation depuis le volume Docker
                     bat """
+                        echo Copying evaluation metrics from Docker volume...
                         docker run --rm -v evaluation-metrics:/app/metrics -v ${WORKSPACE}:/output busybox cp -r /app/metrics /output/metrics
                     """
-
-                    // Archiver les artefacts pour les stocker sur Jenkins
                     archiveArtifacts artifacts: 'models/**/*,metrics/**/*', onlyIfSuccessful: true
                 }
             }
@@ -96,7 +117,7 @@ pipeline {
     post {
         always {
             script {
-                // Clean up Docker images and containers
+                bat 'echo Cleaning up Docker system...'
                 bat 'docker system prune -f'
             }
         }
