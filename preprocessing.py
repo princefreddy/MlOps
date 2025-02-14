@@ -1,3 +1,4 @@
+import joblib
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -38,7 +39,7 @@ def reduce_dimensionality(train_data):
     pca = PCA(n_components=0.95, svd_solver="full")
     df_pca = pca.fit_transform(df_transformed)
 
-    return df_pca, train_data["SalePrice"]
+    return df_pca, train_data["SalePrice"], preprocessor, pca
 
 def oversample_data(X, y):
     """Apply random oversampling to balance the dataset"""
@@ -47,7 +48,7 @@ def oversample_data(X, y):
     
     return X_resampled, y_resampled
 
-def preprocess_pipeline(train_path, test_path, output_path):
+def preprocess_pipeline(train_path, test_path, output_path, preprocessing_path='preprocessing_objects.pkl'):
     """Complete preprocessing pipeline"""
     # Load data
     train_data, test_data = load_data(train_path, test_path)
@@ -56,7 +57,7 @@ def preprocess_pipeline(train_path, test_path, output_path):
     train_data_cleaned = handle_missing_values(train_data)
     
     # Reduce dimensionality
-    X_pca, y = reduce_dimensionality(train_data_cleaned)
+    X_pca, y, preprocessor, pca = reduce_dimensionality(train_data_cleaned)
     
     # Oversample data
     X_resampled, y_resampled = oversample_data(X_pca, y)
@@ -68,7 +69,14 @@ def preprocess_pipeline(train_path, test_path, output_path):
     # Save preprocessed data
     df_resampled.to_csv(output_path, index=False)
     
+    # Save preprocessing objects
+    joblib.dump({
+        'preprocessor': preprocessor,
+        'pca': pca
+    }, preprocessing_path)
+    
     print(f"Preprocessed data saved to {output_path}")
+    print(f"Preprocessing objects saved to {preprocessing_path}")
 
 if __name__ == "__main__":
     preprocess_pipeline("train.csv", "test.csv", "cleaned_data.csv")

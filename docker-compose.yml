@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Service pour le modèle déployé
+  model:
+    build:
+      context: ./model
+    container_name: mlops-model
+    ports:
+      - "5001:5001"  # Expose le port 5001 pour FastAPI
+    volumes:
+      - model-data:/app/data
+    networks:
+      - mlops-network
+
+  # Service pour le serveur API
+  api:
+    build:
+      context: ./api
+    container_name: mlops-api
+    ports:
+      - "8000:8000"  # Expose le port 8000 de l'API
+    environment:
+      - DB_HOST=db
+      - DB_NAME=predictions
+      - DB_USER=admin
+      - DB_PASSWORD=password
+    depends_on:
+      - model
+      - db
+    networks:
+      - mlops-network
+
+  # Service pour la base de données
+  db:
+    build:
+      context: ./db
+    container_name: mlops-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: predictions
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"  # Expose le port 5432 de la base de données
+    networks:
+      - mlops-network
+
+# Volumes pour persister les données
+volumes:
+  model-data:
+  db-data:
+
+# Réseau pour connecter les services
+networks:
+  mlops-network:

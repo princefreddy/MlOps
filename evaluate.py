@@ -23,7 +23,7 @@ def load_model_and_data(model_path, data_path):
     y = df_cleaned["SalePrice"]
     
     # Scale features
-    X_scaled = scaler.transform(X)
+    X_scaled = scaler.fit_transform(X)
     y_encoded = label_encoder.transform(y)
     
     return model, X_scaled, y_encoded, label_encoder
